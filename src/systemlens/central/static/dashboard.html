@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SystemLens</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+
+<div id="login-view">
+  <div class="login-box">
+    <h2>SystemLens</h2>
+    <p>Enter an agent API key to view its findings.</p>
+    <input id="key-input" type="password" placeholder="sla_..." autocomplete="off">
+    <button id="login-btn">View findings</button>
+    <div class="error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app-view">
+  <header>
+    <h1>SystemLens</h1>
+    <div class="header-right">
+      <span class="who" id="who"></span>
+      <button id="logout-btn">Log out</button>
+    </div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <select id="project-filter"><option value="">All projects</option></select>
+      <select id="since-filter">
+        <option value="1">Last hour</option>
+        <option value="24" selected>Last 24h</option>
+        <option value="168">Last 7 days</option>
+        <option value="">All time</option>
+      </select>
+    </div>
+    <div id="findings"></div>
+  </main>
+</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

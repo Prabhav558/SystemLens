@@ -1,0 +1,111 @@
+# Evidence recorded from a real run of a deliberately broken 7-container
+# compose stack, with an answer key taken from that stack's source code.
+#
+#   agent eval run examples/eval/error-project/suite.yaml --no-llm   # correlator only, no API key
+#   agent eval run examples/eval/error-project/suite.yaml            # with your configured model
+#
+# What is actually wrong in the stack:
+#   db            stops accepting connections, then exits with code 1
+#   web, worker   depend on db; web also looks up "cache", a hostname that
+#                 does not exist (the service is called redis)
+#   web           three endpoints raise: KeyError, missing file, read-only filesystem
+#   memory_hog    is OOM-killed
+#   flaky_health  has a /health endpoint hard-coded to return 500
+#   dependent_svc depends on flaky_health
+name: error-project
+cases:
+  - id: worker-db-refusing
+    bundle: bundles/worker-db-refusing.json
+    expect:
+      component: [error_project_db, db]
+      verdict: [root_cause_identified, probable_cause]
+      linked: [error_project_db]
+      not_linked: [error_project_memory_hog, error_project_flaky_health]
+      must_not_blame: [error_project_memory_hog, error_project_flaky_health]
+
+  - id: web-db-refusing
+    bundle: bundles/web-db-refusing.json
+    expect:
+      component: [error_project_db, db]
+      verdict: [root_cause_identified, probable_cause]
+      linked: [error_project_db]
+      not_linked: [error_project_memory_hog, error_project_flaky_health]
+
+  - id: db-crash-event
+    bundle: bundles/db-crash-event.json
+    expect:
+      component: [error_project_db, db]
+      verdict: [root_cause_identified, probable_cause]
+      linked: [error_project_db]
+      not_linked: [error_project_memory_hog, error_project_flaky_health]
+
+  - id: worker-db-dns-after-exit
+    bundle: bundles/worker-db-dns-after-exit.json
+    expect:
+      component: [error_project_db, db]
+      verdict: [root_cause_identified, probable_cause]
+      linked: [error_project_db]
+      must_not_blame: [error_project_memory_hog, error_project_flaky_health]
+
+  - id: memory-hog-oom
+    bundle: bundles/memory-hog-oom.json
+    expect:
+      component: [error_project_memory_hog, memory_hog]
+      verdict: [root_cause_identified, probable_cause]
+      cause_mentions_any: [OOM, memory]
+      linked: [error_project_memory_hog]
+      not_linked: [error_project_flaky_health]
+
+  # The log line says "dependency check did not pass", but the endpoint is
+  # hard-coded to fail: nothing else in the stack is involved.
+  - id: flaky-health-hardcoded
+    bundle: bundles/flaky-health-hardcoded.json
+    expect:
+      component: [error_project_flaky_health, flaky_health]
+      linked: [error_project_flaky_health]
+      not_linked: [error_project_memory_hog, error_project_db]
+      must_not_blame: [error_project_db, db, cache, error_project_memory_hog]
+
+  - id: dependent-svc-upstream-refusing
+    bundle: bundles/dependent-svc-upstream-refusing.json
+    expect:
+      component: [error_project_flaky_health, flaky_health]
+      linked: [error_project_flaky_health]
+      not_linked: [error_project_memory_hog]
+
+  # Application bugs in web. db having crashed is true and irrelevant.
+  - id: web-crash-keyerror
+    bundle: bundles/web-crash-keyerror.json
+    expect:
+      component: [error_project_web, web]
+      verdict: [root_cause_identified, probable_cause]
+      cause_mentions_any: [KeyError, missing_key]
+      not_linked: [error_project_db, error_project_memory_hog, error_project_flaky_health]
+      must_not_blame: [error_project_db, db, error_project_memory_hog, error_project_flaky_health]
+
+  - id: web-read-config-missing
+    bundle: bundles/web-read-config-missing.json
+    expect:
+      component: [error_project_web, web]
+      verdict: [root_cause_identified, probable_cause]
+      cause_mentions_any: [settings.json, "No such file", FileNotFound, "does not exist", missing]
+      not_linked: [error_project_db, error_project_memory_hog, error_project_flaky_health]
+      must_not_blame: [error_project_db, db, error_project_memory_hog, error_project_flaky_health]
+
+  - id: web-write-protected
+    bundle: bundles/web-write-protected.json
+    expect:
+      component: [error_project_web, web]
+      verdict: [root_cause_identified, probable_cause]
+      cause_mentions_any: [read-only, "Read-only", "read only"]
+      not_linked: [error_project_db, error_project_memory_hog, error_project_flaky_health]
+      must_not_blame: [error_project_db, db, error_project_memory_hog, error_project_flaky_health]
+
+  # "cache" is not a service in this stack. Saying so, or declining to
+  # guess, is right; blaming any container that happens to be down is not.
+  - id: web-cache-wrong-hostname
+    bundle: bundles/web-cache-wrong-hostname.json
+    expect:
+      component: [error_project_web, web, unknown, cache]
+      not_linked: [error_project_db, error_project_memory_hog, error_project_flaky_health]
+      must_not_blame: [error_project_db, db, error_project_memory_hog, error_project_flaky_health]

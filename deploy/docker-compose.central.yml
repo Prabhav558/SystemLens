@@ -1,0 +1,35 @@
+# Central server behind Caddy, which obtains and renews a TLS certificate.
+#
+#   export SYSTEMLENS_DOMAIN=lens.example.com
+#   export SYSTEMLENS_CENTRAL_ADMIN_KEY="$(openssl rand -hex 32)"   # optional: remote agent registration
+#   docker compose -f deploy/docker-compose.central.yml up -d --build
+#   docker compose -f deploy/docker-compose.central.yml exec central systemlens central register-agent my-laptop
+services:
+  central:
+    build: ..
+    # not published on the host: only Caddy can reach it, so its forwarded
+    # client address can be trusted for per-client auth throttling
+    command: ["central", "serve", "--host", "0.0.0.0", "--forwarded-allow-ips", "*"]
+    environment:
+      SYSTEMLENS_CENTRAL_ADMIN_KEY: ${SYSTEMLENS_CENTRAL_ADMIN_KEY:-}
+    volumes:
+      - central-data:/data
+    restart: unless-stopped
+    expose:
+      - "8500"
+
+  caddy:
+    image: caddy:2-alpine
+    command: caddy reverse-proxy --from ${SYSTEMLENS_DOMAIN:?set SYSTEMLENS_DOMAIN} --to central:8500
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on:
+      - central
+    restart: unless-stopped
+
+volumes:
+  central-data:
+  caddy-data:

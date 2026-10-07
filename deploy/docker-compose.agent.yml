@@ -1,0 +1,30 @@
+# Run the agent itself in a container instead of on the host.
+#
+# The agent needs the Docker socket. Access to that socket is equivalent to
+# root on the host, so it is mounted read-only here and the container runs
+# with no other privileges; for stricter isolation, put a socket proxy that
+# only allows GET requests in front of it and point `docker_socket` at that.
+#
+# Each watched project directory must be mounted at the SAME path it has on
+# the host, so compose files can be found:
+#   PROJECT_DIR=/home/me/myapp docker compose -f deploy/docker-compose.agent.yml up -d --build
+#   docker compose -f deploy/docker-compose.agent.yml exec agent systemlens add-project /home/me/myapp
+services:
+  agent:
+    build: ..
+    command: ["start"]
+    user: "0:0"                      # needed to read the Docker socket
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      SYSTEMLENS_HTTP_TOKEN: ${SYSTEMLENS_HTTP_TOKEN:-}
+      SYSTEMLENS_SLACK_WEBHOOK: ${SYSTEMLENS_SLACK_WEBHOOK:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - agent-data:/data
+      - ${PROJECT_DIR:?set PROJECT_DIR}:${PROJECT_DIR}:ro
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+volumes:
+  agent-data:

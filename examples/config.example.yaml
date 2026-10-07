@@ -1,0 +1,77 @@
+# Copy to ~/.systemlens/config.yaml, or run `agent init` for an interactive setup.
+# Only two LLM providers are supported: ollama (fully local, no API key) and
+# groq (hosted API, OpenAI-compatible).
+
+llm:
+  provider: ollama           # ollama | groq
+  model: llama3.1
+  base_url: http://localhost:11434
+  max_output_tokens: 4096
+  max_evidence_chars: 6000   # evidence sent per analysis (~4 chars/token); halved automatically on "too large"
+  max_retries: 2             # on rate limits and transient provider errors
+  # fallback:                # tried when the primary provider keeps failing
+  #   provider: ollama
+  #   model: llama3.1
+  #   base_url: http://localhost:11434
+
+# Groq example (OpenAI-compatible; strict JSON schema mode only on
+# openai/gpt-oss-20b / openai/gpt-oss-120b, other models use a best-effort
+# JSON fallback with a repair retry):
+#   llm:
+#     provider: groq
+#     model: openai/gpt-oss-120b
+#     api_key_env: GROQ_API_KEY
+
+ratelimit:
+  cooldown_seconds: 1800     # re-analyze the same fingerprint at most every 30 min
+  min_reanalyze_seconds: 120 # floor between analyses even when container state changed
+  max_analyses_per_hour: 20
+  daily_token_budget: 500000
+  reanalyze_on_state_change: true
+
+correlation:
+  window_seconds: 120        # look back this far for container exits relative to a log error
+  container_log_lines: 50
+  log_window_lines: 30
+
+memory:
+  use_faiss: true
+  similar_top_k: 3
+  reuse_resolutions: true    # a fingerprint you resolved is answered from memory, no LLM call
+
+retention:
+  days: 30                   # older incidents are pruned at startup; resolutions are kept
+
+docker_events: true          # crashes, OOM kills and failing health checks trigger findings
+
+investigator:
+  auto: false                # follow up inconclusive findings automatically (several extra LLM calls each)
+  max_steps: 5
+  min_confidence: 0.5
+
+remediation:
+  allow_execute: false       # let `agent fix --run` run allowlisted docker restart/start commands
+  verify_minutes: 15         # an applied fix with no recurrence for this long becomes the resolution
+
+notify:                      # a target is active when its environment variable is set
+  slack_webhook_env: SYSTEMLENS_SLACK_WEBHOOK
+  discord_webhook_env: SYSTEMLENS_DISCORD_WEBHOOK
+  webhook_url_env: SYSTEMLENS_WEBHOOK_URL
+  desktop: false
+  verdicts: [root_cause_identified, probable_cause]
+  min_confidence: 0.5
+  daily_digest_at: null      # e.g. "09:00"
+
+eval:
+  record_bundles: true       # keep the latest evidence per issue (used by explain, investigate, eval)
+
+sinks:
+  console: true
+  sqlite: true
+  http_enabled: false        # push findings to a central server (see docs/DEPLOYMENT.md)
+  http_url: null
+  http_token_env: SYSTEMLENS_HTTP_TOKEN
+
+api:
+  host: 127.0.0.1
+  port: 8420

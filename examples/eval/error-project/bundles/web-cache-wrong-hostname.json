@@ -1,0 +1,752 @@
+{
+ "recorded_at": 1791371033.203426,
+ "provider": null,
+ "model": null,
+ "analysis": null,
+ "bundle": {
+  "project": "error",
+  "signal": {
+   "record": {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:52,914 ERROR web: could not translate host name \"cache\" to address: Name or service not known",
+    "ts": 1791371033.1771681,
+    "event_ts": 1791371032.917016,
+    "severity": 40,
+    "lines": 1,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   "template": "<ts>,<num> ERROR web: could not translate host name \"<str>\" to address: Name or service not known",
+   "fingerprint": "e7132764dd95be43",
+   "category": "dns_failure",
+   "hints": {
+    "host": "cache"
+   }
+  },
+  "occurrences": 1,
+  "log_window": [
+   {
+    "project": "error",
+    "source": "container:error_project_redis",
+    "raw": "1:C 07 Oct 2026 11:03:39.675 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf",
+    "ts": 1791371022.492699,
+    "event_ts": 1791371019.676375,
+    "severity": 30,
+    "lines": 1,
+    "container": "error_project_redis",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_redis",
+    "raw": "1:M 07 Oct 2026 11:03:39.677 * monotonic clock: POSIX clock_gettime",
+    "ts": 1791371022.492699,
+    "event_ts": 1791371019.677625,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_redis",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_redis",
+    "raw": "1:M 07 Oct 2026 11:03:39.690 * Running mode=standalone, port=6379.",
+    "ts": 1791371022.492699,
+    "event_ts": 1791371019.690497,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_redis",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_redis",
+    "raw": "1:M 07 Oct 2026 11:03:39.693 * Server initialized",
+    "ts": 1791371022.492699,
+    "event_ts": 1791371019.693577,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_redis",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_redis",
+    "raw": "1:M 07 Oct 2026 11:03:39.696 * Ready to accept connections tcp",
+    "ts": 1791371022.492699,
+    "event_ts": 1791371019.697001,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_redis",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": " * Serving Flask app 'health_app'\n * Debug mode: off",
+    "ts": 1791371022.4980557,
+    "event_ts": 1791371021.96362,
+    "severity": 20,
+    "lines": 2,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:42,027 INFO flaky-health: \u001b[31m\u001b[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.\u001b[0m\n * Running on all addresses (0.0.0.0)\n * Running on http://127.0.0.1:5000\n * Running on http://172.21.0.3:5000",
+    "ts": 1791371022.4980557,
+    "event_ts": 1791371022.029129,
+    "severity": 20,
+    "lines": 4,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:42,028 INFO flaky-health: \u001b[33mPress CTRL+C to quit\u001b[0m",
+    "ts": 1791371022.4980557,
+    "event_ts": 1791371022.029363,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 50MB total",
+    "ts": 1791371022.7650628,
+    "event_ts": 1791371022.512742,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": " * Serving Flask app 'app'\n * Debug mode: off",
+    "ts": 1791371023.163327,
+    "event_ts": 1791371022.881446,
+    "severity": 20,
+    "lines": 2,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:42,907 INFO web: db connection ok",
+    "ts": 1791371023.163327,
+    "event_ts": 1791371022.908343,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:42,910 INFO web: \u001b[31m\u001b[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.\u001b[0m\n * Running on all addresses (0.0.0.0)\n * Running on http://127.0.0.1:5000\n * Running on http://172.21.0.8:5000",
+    "ts": 1791371023.163327,
+    "event_ts": 1791371022.91069,
+    "severity": 20,
+    "lines": 4,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:42,910 INFO web: \u001b[33mPress CTRL+C to quit\u001b[0m",
+    "ts": 1791371023.163327,
+    "event_ts": 1791371022.910784,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 60MB total",
+    "ts": 1791371023.5551398,
+    "event_ts": 1791371023.303215,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 70MB total",
+    "ts": 1791371024.2184403,
+    "event_ts": 1791371023.966711,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 80MB total",
+    "ts": 1791371024.9086227,
+    "event_ts": 1791371024.656579,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 90MB total",
+    "ts": 1791371025.4649642,
+    "event_ts": 1791371025.213351,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 100MB total",
+    "ts": 1791371026.2237546,
+    "event_ts": 1791371025.970892,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:46,100 ERROR flaky-health: health check failed: dependency check did not pass",
+    "ts": 1791371026.3578713,
+    "event_ts": 1791371026.101153,
+    "severity": 40,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:46,101 INFO flaky-health: 127.0.0.1 - - [07/Oct/2026 11:03:46] \"\u001b[35m\u001b[1mGET /health HTTP/1.1\u001b[0m\" 500 -",
+    "ts": 1791371026.3578713,
+    "event_ts": 1791371026.102215,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 110MB total",
+    "ts": 1791371026.8416176,
+    "event_ts": 1791371026.588976,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_memory_hog",
+    "raw": "memory-hog: allocated 120MB total",
+    "ts": 1791371027.442317,
+    "event_ts": 1791371027.189583,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_worker",
+    "raw": "2026-10-07 11:03:47,319 INFO worker: db reachable, processing queue",
+    "ts": 1791371027.5760133,
+    "event_ts": 1791371027.322781,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_worker",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:47,917 INFO web: db connection ok",
+    "ts": 1791371028.1707342,
+    "event_ts": 1791371027.918138,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_web",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "docker:events",
+    "raw": "container error_project_memory_hog was killed by the kernel OOM killer (exit code 137)",
+    "ts": 1791371028.935473,
+    "event_ts": 1791371028.4616752,
+    "severity": 50,
+    "lines": 1,
+    "container": "error_project_memory_hog",
+    "category_hint": "oom"
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_dependent_svc",
+    "raw": "2026-10-07 11:03:49,260 INFO dependent-svc: reached flaky_health:5000 (upstream health endpoint is failing though)",
+    "ts": 1791371029.5132604,
+    "event_ts": 1791371029.261422,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_dependent_svc",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:51,323 ERROR flaky-health: health check failed: dependency check did not pass",
+    "ts": 1791371031.5772328,
+    "event_ts": 1791371031.324303,
+    "severity": 40,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_flaky_health",
+    "raw": "2026-10-07 11:03:51,324 INFO flaky-health: 127.0.0.1 - - [07/Oct/2026 11:03:51] \"\u001b[35m\u001b[1mGET /health HTTP/1.1\u001b[0m\" 500 -",
+    "ts": 1791371031.5772328,
+    "event_ts": 1791371031.324905,
+    "severity": 20,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": null
+   },
+   {
+    "project": "error",
+    "source": "docker:events",
+    "raw": "container error_project_flaky_health health check is failing (status: unhealthy)",
+    "ts": 1791371031.7780418,
+    "event_ts": 1791371031.3511217,
+    "severity": 40,
+    "lines": 1,
+    "container": "error_project_flaky_health",
+    "category_hint": "health_check"
+   },
+   {
+    "project": "error",
+    "source": "container:error_project_web",
+    "raw": "2026-10-07 11:03:52,914 ERROR web: could not translate host name \"cache\" to address: Name or service not known",
+    "ts": 1791371033.1771681,
+    "event_ts": 1791371032.917016,
+    "severity": 40,
+    "lines": 1,
+    "container": "error_project_web",
+    "category_hint": null
+   }
+  ],
+  "containers": [
+   {
+    "id": "c1b87347ab99",
+    "name": "error_project_web",
+    "image": "error-web",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371019.831622,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "085607bd29b5595d5f1a3c5582a5dc2ee47fe74a259d6d73ab27c7bb1ce9ee55",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "db:service_started:false,redis:service_started:false",
+     "com.docker.compose.image": "sha256:01b1a51146139e63a12dae8f787807a31a0059a10f3b8b36c206b95bcd3b7bee",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "web",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {
+     "5000/tcp": [
+      {
+       "HostIp": "0.0.0.0",
+       "HostPort": "5000"
+      },
+      {
+       "HostIp": "::",
+       "HostPort": "5000"
+      }
+     ]
+    },
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_web",
+     "web"
+    ],
+    "compose_project": "error",
+    "compose_service": "web",
+    "depends_on": [
+     "db",
+     "redis"
+    ],
+    "ip_addresses": [
+     "172.21.0.8"
+    ],
+    "memory_limit": null
+   },
+   {
+    "id": "861f58eb3878",
+    "name": "error_project_worker",
+    "image": "error-worker",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371019.768498,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "5c909a38439d97cdc4757822c2bc7fcb28b988b393082ec0d958852596176d97",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "db:service_started:false",
+     "com.docker.compose.image": "sha256:b43a147e6f502de5873392b6f4ff0a8ac2385c17407ada07ea2e53b83b4603e1",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "worker",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {},
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_worker",
+     "worker"
+    ],
+    "compose_project": "error",
+    "compose_service": "worker",
+    "depends_on": [
+     "db"
+    ],
+    "ip_addresses": [
+     "172.21.0.7"
+    ],
+    "memory_limit": null
+   },
+   {
+    "id": "306b45c2246d",
+    "name": "error_project_dependent_svc",
+    "image": "error-dependent_svc",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371019.707896,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "9095004df67e0b63e99730b8fc9556ed9875960849e0b3ac90c77c55b2b04ebf",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "flaky_health:service_started:false",
+     "com.docker.compose.image": "sha256:e627167bf7a2d9234d42e5a2af56311955bcda728a9d224f28b7b38971621d3b",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "dependent_svc",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {},
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_dependent_svc",
+     "dependent_svc"
+    ],
+    "compose_project": "error",
+    "compose_service": "dependent_svc",
+    "depends_on": [
+     "flaky_health"
+    ],
+    "ip_addresses": [
+     "172.21.0.6"
+    ],
+    "memory_limit": null
+   },
+   {
+    "id": "659cd5820cd4",
+    "name": "error_project_redis",
+    "image": "redis:7-alpine",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371018.029551,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "a348cddd4731f9e78f6a30a7d7997a13a8cbac9b1c23929c394a1956e50b3daf",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "",
+     "com.docker.compose.image": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "redis",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {
+     "6379/tcp": null
+    },
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_redis",
+     "redis"
+    ],
+    "compose_project": "error",
+    "compose_service": "redis",
+    "depends_on": [],
+    "ip_addresses": [
+     "172.21.0.2"
+    ],
+    "memory_limit": null
+   },
+   {
+    "id": "f2b3f5e2e430",
+    "name": "error_project_db",
+    "image": "error-db",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371018.03755,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "5624af08725382b665b4a86fb0b0c34f97abda617337f440cbb4b9e4d1a4c55a",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "",
+     "com.docker.compose.image": "sha256:b3c415abe6c0f57256c0ec98f5a7b7035e659f88bd79d1ddb91508a3b4a5d1d1",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "db",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {},
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_db",
+     "db"
+    ],
+    "compose_project": "error",
+    "compose_service": "db",
+    "depends_on": [],
+    "ip_addresses": [
+     "172.21.0.5"
+    ],
+    "memory_limit": null
+   },
+   {
+    "id": "3ce77954a0de",
+    "name": "error_project_memory_hog",
+    "image": "error-memory_hog",
+    "status": "exited",
+    "running": false,
+    "exit_code": 137,
+    "started_at": 1791371017.97911,
+    "finished_at": 1791371027.960512,
+    "oom_killed": true,
+    "restart_count": 0,
+    "health": null,
+    "health_log": [],
+    "labels": {
+     "com.docker.compose.config-hash": "1faa4be498817e0858e70901e2ebbce5b4fd1a15b540c37785dd9f753ccbaeab",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "",
+     "com.docker.compose.image": "sha256:5ed4015c8d8c648ad6a1efe509c7652f4dec15aa777823a8fc8bd83474a61404",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "memory_hog",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {},
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_memory_hog",
+     "memory_hog"
+    ],
+    "compose_project": "error",
+    "compose_service": "memory_hog",
+    "depends_on": [],
+    "ip_addresses": [],
+    "memory_limit": 67108864
+   },
+   {
+    "id": "7bf96dbc3d7f",
+    "name": "error_project_flaky_health",
+    "image": "error-flaky_health",
+    "status": "running",
+    "running": true,
+    "exit_code": 0,
+    "started_at": 1791371018.025235,
+    "finished_at": null,
+    "oom_killed": false,
+    "restart_count": 0,
+    "health": "unhealthy",
+    "health_log": [
+     "2026-10-07T11:03:46.157219309Z exit=1 Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 216, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 525, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 634, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 563, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+     "2026-10-07T11:03:51.350536984Z exit=1 Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 216, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 525, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 634, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 563, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 500: INTERNAL SERVER ERROR"
+    ],
+    "labels": {
+     "com.docker.compose.config-hash": "550656681be44142f9d2fbd2f35649e447cbdc1d7312dd2dbab598d96cd6ab2b",
+     "com.docker.compose.container-number": "1",
+     "com.docker.compose.depends_on": "",
+     "com.docker.compose.image": "sha256:c67c6047ca1cd2d54eb466624388cfec4a61425a727231959acf35a3e553bce1",
+     "com.docker.compose.oneoff": "False",
+     "com.docker.compose.project": "error",
+     "com.docker.compose.project.config_files": "/home/prabhav/error/docker-compose.yml",
+     "com.docker.compose.project.working_dir": "/home/prabhav/error",
+     "com.docker.compose.service": "flaky_health",
+     "com.docker.compose.version": "5.0.1",
+     "desktop.docker.io/wsl-distro": "Ubuntu-24.04"
+    },
+    "ports": {
+     "5000/tcp": null
+    },
+    "networks": [
+     "error_backend"
+    ],
+    "aliases": [
+     "error_project_flaky_health",
+     "flaky_health"
+    ],
+    "compose_project": "error",
+    "compose_service": "flaky_health",
+    "depends_on": [],
+    "ip_addresses": [
+     "172.21.0.3"
+    ],
+    "memory_limit": null
+   }
+  ],
+  "container_logs": {},
+  "candidates": [
+   {
+    "rule_id": "R2",
+    "component": "error_project_memory_hog",
+    "summary": "container 'error_project_memory_hog' exited 5s before this error (exit_code=137)",
+    "confidence": 0.3,
+    "evidence": [
+     "error_project_memory_hog exited at t-5s, exit_code=137"
+    ],
+    "meta": {
+     "container_id": "3ce77954a0de",
+     "age": 4.9565041065216064
+    },
+    "scoped": false
+   },
+   {
+    "rule_id": "R3",
+    "component": "error_project_memory_hog",
+    "summary": "container 'error_project_memory_hog' was OOM-killed",
+    "confidence": 0.3,
+    "evidence": [
+     "error_project_memory_hog OOMKilled=true exit_code=137 memory_limit=67108864"
+    ],
+    "meta": {
+     "container_id": "3ce77954a0de"
+    },
+    "scoped": false
+   },
+   {
+    "rule_id": "R4",
+    "component": "error_project_flaky_health",
+    "summary": "container 'error_project_flaky_health' health check is failing",
+    "confidence": 0.3,
+    "evidence": [
+     "error_project_flaky_health health=unhealthy",
+     "2026-10-07T11:03:46.157219309Z exit=1 Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 216, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 525, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 634, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 563, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+     "2026-10-07T11:03:51.350536984Z exit=1 Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 216, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 525, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 634, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 563, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 496, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/urllib/request.py\", line 643, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 500: INTERNAL SERVER ERROR"
+    ],
+    "meta": {
+     "container_id": "7bf96dbc3d7f"
+    },
+    "scoped": false
+   },
+   {
+    "rule_id": "R5",
+    "component": "error_project_flaky_health",
+    "summary": "'dependent_svc' depends on 'flaky_health', which is unhealthy",
+    "confidence": 0.3,
+    "evidence": [
+     "compose depends_on: dependent_svc -> flaky_health",
+     "flaky_health: status=running health=unhealthy"
+    ],
+    "meta": {
+     "container_id": "7bf96dbc3d7f"
+    },
+    "scoped": false
+   }
+  ],
+  "prior": {
+   "fingerprint": "e7132764dd95be43",
+   "first_seen": 1791371033.1776452,
+   "last_seen": 1791371033.1776452,
+   "occurrences": 1,
+   "resolution": null,
+   "resolved_at": null
+  },
+  "similar": [],
+  "docker_available": true,
+  "mapping_confidence": "high",
+  "created_at": 1791371033.1975355,
+  "max_evidence_chars": 6000
+ }
+}

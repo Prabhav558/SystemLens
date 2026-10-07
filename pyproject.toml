@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "systemlens"
+version = "0.2.0"
+description = "Local AI ops agent with container-aware root cause analysis"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["docker", "observability", "root-cause-analysis", "logs", "llm", "devtools"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "watchdog>=4.0",
+    "docker>=7.0",
+    "typer>=0.12",
+    "click>=8.0",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "numpy>=1.26",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+groq = ["openai>=1.30"]        # Groq is OpenAI-API-compatible; same client, different base_url
+faiss = ["faiss-cpu>=1.8"]
+api = ["fastapi>=0.110", "uvicorn>=0.29"]
+mcp = ["mcp>=1.2"]              # `agent mcp`: expose findings to MCP clients
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "build>=1.0"]
+all = [
+    "openai>=1.30", "faiss-cpu>=1.8",
+    "fastapi>=0.110", "uvicorn>=0.29", "mcp>=1.2",
+]
+
+[project.scripts]
+agent = "systemlens.cli.main:app"
+systemlens = "systemlens.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/systemlens"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "examples", "docs", "deploy", "README.md", "INSTALL.md", "CHANGELOG.md", "LICENSE", "install.sh"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

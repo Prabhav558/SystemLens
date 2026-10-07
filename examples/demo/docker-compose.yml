@@ -1,0 +1,28 @@
+# Reproduces the tool's success criterion end-to-end:
+#   "Backend failed due to PostgreSQL container being down -> connection refused"
+#
+# Usage:
+#   cd examples/demo
+#   docker compose up -d
+#   docker compose stop db      # trigger the failure
+#   docker compose start db     # recover
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:demo@db:5432/demo
+    volumes:
+      - ./logs:/var/log/app
