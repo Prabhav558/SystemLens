@@ -16,6 +16,42 @@ _MAX_EVIDENCE_CHARS = DEFAULT_MAX_EVIDENCE_CHARS = 6000  # hard ceiling on the w
                              # everything else (many containers, a noisy log window, etc.)
 
 
+_SIGNAL_CHARS = 1500        # the triggering record: a whole traceback fits
+_WINDOW_RECORD_CHARS = 500  # each surrounding record
+
+
+def _clip_record(text: str, limit: int) -> str:
+    """Shorten a multi-line record (a traceback) while keeping what matters.
+
+    A traceback ends with the exception itself ("KeyError: 'k'"), so cutting it
+    at a character limit removes the one line that says what went wrong.
+    Keep the first lines (where it happened) and the last lines (what it was),
+    and drop the middle.
+    """
+    if len(text) <= limit:
+        return text
+    lines = text.splitlines()
+    if len(lines) == 1:
+        return _clip(text)
+    head, budget = [], limit // 3
+    for line in lines[:3]:
+        line = line[:200]
+        if sum(len(h) + 1 for h in head) + len(line) > budget:
+            break
+        head.append(line)
+    tail, used = [], 0
+    for line in reversed(lines[len(head):]):
+        line = line[:300]
+        if used + len(line) + 1 > limit - budget and tail:
+            break
+        tail.append(line)
+        used += len(line) + 1
+    tail.reverse()
+    omitted = len(lines) - len(head) - len(tail)
+    marker = [f"  ... [{omitted} lines omitted]"] if omitted > 0 else []
+    return "\n".join(head + marker + tail)
+
+
 def _clip(text: str) -> str:
     if len(text) <= _MAX_LINE_CHARS:
         return text
@@ -80,7 +116,7 @@ def render_evidence(bundle: EvidenceBundle) -> str:
         "",
         "=== TRIGGERING SIGNAL ===",
         f"category: {s.category}  severity: {s.severity.name}  occurrences: {bundle.occurrences}",
-        _clip(s.record.raw),
+        _clip_record(s.record.raw, _SIGNAL_CHARS),
         "",
         "=== DETERMINISTIC CANDIDATES (already computed, ranked) ===",
     ]
@@ -114,7 +150,7 @@ def render_evidence(bundle: EvidenceBundle) -> str:
 
     supplementary: list[str] = ["", "=== SURROUNDING LOG WINDOW ==="]
     for r in bundle.log_window:
-        supplementary.append(_clip(f"[{r.container or r.source}] {r.raw}"))
+        supplementary.append(_clip_record(f"[{r.container or r.source}] {r.raw}", _WINDOW_RECORD_CHARS))
 
     supplementary.append("")
     supplementary.append("=== CONTAINER STATE ===")

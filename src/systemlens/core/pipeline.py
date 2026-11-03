@@ -20,7 +20,7 @@ from systemlens.core.models import Analysis, EvidenceBundle, Finding, LogRecord,
 from systemlens.core.ratelimit import RateLimiter
 from systemlens.core.sinks import ReportSink
 from systemlens.agents.investigator import needs_investigation
-from systemlens.llm.base import LLMProvider
+from systemlens.llm.base import LLMProvider, ProviderRateLimited
 from systemlens.logs.cluster import to_signal
 from systemlens.logs.redact import redact
 from systemlens.memory.store import ProjectStore
@@ -82,6 +82,9 @@ class ProjectPipeline:
         self._pending_seen: dict[str, float] = {}
         self._muted: set[str] = set()
         self._muted_checked = 0.0
+        # Records whose analysis was refused for rate limiting, to retry once the
+        # provider's wait is over: fingerprint -> (record, due, first_deferred)
+        self._deferred: dict[str, tuple[LogRecord, float, float]] = {}
 
     def _is_muted(self, fingerprint: str) -> bool:
         # `agent mute` runs in another process: re-read the (tiny) set now and then
@@ -109,14 +112,17 @@ class ProjectPipeline:
         self._pending.clear()
         self._pending_seen.clear()
 
-    async def process(self, record: LogRecord) -> Optional[Finding]:
-        self._window.add(record)
+    async def process(self, record: LogRecord, _retry: bool = False) -> Optional[Finding]:
+        if not _retry:
+            self._window.add(record)
 
         signal = to_signal(record)
         if signal is None:
             return None
 
-        occurrences = self._count(signal)
+        occurrences = self._counts.get(signal.fingerprint, 1) if _retry else self._count(signal)
+        if signal.fingerprint in self._deferred and not _retry:
+            return None          # already waiting for the provider; this is another occurrence
 
         # An unclassified warning (a startup notice, a deprecation) is counted
         # but not worth an analysis; errors and recognised patterns are.
@@ -200,6 +206,12 @@ class ProjectPipeline:
 
         try:
             checked = await analysis_step.analyze(self._llm, bundle)
+        except ProviderRateLimited as e:
+            # Nothing was analysed and nothing was spent: don't start the issue's
+            # cooldown or count an attempt. Retry when the provider's wait is over.
+            self._recently_analyzed.pop(kind, None)
+            self._defer(signal.fingerprint, record, e.retry_after)
+            return None
         except Exception:
             # A failed call still consumes rate-limit budget (cooldown +
             # hourly cap), or a broken provider retries unthrottled at full
@@ -240,6 +252,45 @@ class ProjectPipeline:
         self._record(finding)
         await self._sink.emit(finding)
         return finding
+
+    MAX_DEFERRED = 100
+    DEFER_GIVE_UP_SECONDS = 900.0
+
+    def _defer(self, fingerprint: str, record: LogRecord, retry_after: float) -> None:
+        now = time.monotonic()
+        first = self._deferred[fingerprint][2] if fingerprint in self._deferred else now
+        if now - first > self.DEFER_GIVE_UP_SECONDS:
+            self._deferred.pop(fingerprint, None)
+            logger.warning("giving up on %s: the provider stayed rate limited for %d min",
+                           fingerprint, self.DEFER_GIVE_UP_SECONDS // 60)
+            return
+        if fingerprint not in self._deferred:
+            logger.warning("provider rate limit reached; analysis of %s will retry in %.0fs",
+                           fingerprint, retry_after)
+        if len(self._deferred) >= self.MAX_DEFERRED and fingerprint not in self._deferred:
+            self._deferred.pop(next(iter(self._deferred)))       # drop the oldest
+        self._deferred[fingerprint] = (self._deferred.get(fingerprint, (record,))[0], now + retry_after, first)
+
+    @property
+    def deferred_count(self) -> int:
+        return len(self._deferred)
+
+    async def retry_deferred(self) -> None:
+        """Re-run analyses that were refused for rate limiting, once due."""
+        now = time.monotonic()
+        for fingerprint, (record, due, _first) in list(self._deferred.items()):
+            if due > now:
+                continue
+            entry = self._deferred.pop(fingerprint)
+            try:
+                await self.process(record, _retry=True)
+            except Exception as e:  # noqa: BLE001 - same policy as the live path
+                logger.error("analysis failed for project=%s: %s: %s", self.project,
+                             type(e).__name__, (str(e).splitlines() or [""])[0][:300])
+            else:
+                if fingerprint in self._deferred:      # re-deferred: keep the original clock
+                    rec, new_due, _ = self._deferred[fingerprint]
+                    self._deferred[fingerprint] = (rec, new_due, entry[2])
 
     def _record(self, finding: Finding) -> None:
         if self._bundle_dir is None:

@@ -332,6 +332,7 @@ class AgentDaemon:
             try:
                 for pipeline in list(self._pipelines.values()):
                     pipeline.flush_counts()
+                    await pipeline.retry_deferred()
                 await self._reload_projects()
                 if now - last_outbox >= OUTBOX_EVERY:
                     last_outbox = now

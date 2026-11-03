@@ -492,3 +492,95 @@ def test_local_dashboard_escapes_everything_and_allows_no_scripts(tmp_path):
     assert "default-src 'none'" in page.headers["content-security-policy"]
     assert len(client.get("/findings").json()) == 3
     assert client.get("/projects/nope/findings").status_code == 404
+
+
+def test_container_names_in_a_compose_command_are_translated_to_services(tmp_path):
+    compose = _compose(tmp_path)
+    containers = {"error_project_db": "db", "error_project_web": "web"}
+
+    proposal = remediation.localize(remediation.propose("docker compose start error_project_db"), containers)
+    assert proposal.command == "docker compose start db"
+    assert proposal.argv == ["docker", "compose", "start", "db"] and proposal.risk == "safe"
+
+    both = remediation.localize(remediation.propose("docker compose restart error_project_db web"), containers)
+    assert both.argv == ["docker", "compose", "restart", "db", "web"]
+
+    ran = []
+    runner = lambda argv, **kw: ran.append(argv) or subprocess.CompletedProcess(argv, 0, "", "")  # noqa: E731
+    remediation.execute(proposal, allow_execute=True, project_root=tmp_path, compose_file=compose,
+                        project_containers=set(containers), runner=runner)
+    assert ran == [["docker", "compose", "start", "db"]]
+
+    stranger = remediation.localize(remediation.propose("docker compose start billing"), containers)
+    with pytest.raises(remediation.ExecutionRefused, match="not services"):
+        remediation.execute(stranger, allow_execute=True, project_root=tmp_path, compose_file=compose,
+                            project_containers=set(containers), runner=runner)
+
+
+@pytest.mark.asyncio
+async def test_an_unreachable_central_server_is_reported_once_not_every_retry(tmp_path, monkeypatch, caplog):
+    import logging
+    monkeypatch.setenv("SYSTEMLENS_HTTP_TOKEN", "sla_key")
+    store = ProjectStore(tmp_path / "state.db")
+    up = {"value": False}
+
+    def handler(request):
+        if not up["value"]:
+            raise httpx.ConnectError("refused")
+        return httpx.Response(200, json={"status": "recorded"})
+
+    sink = HttpSink("https://central.example/x", "SYSTEMLENS_HTTP_TOKEN", store,
+                    client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    with caplog.at_level(logging.INFO, logger="systemlens.sinks"):
+        await sink.emit(_finding())
+        for _ in range(5):
+            await sink.flush_outbox()                    # the daemon's 30-second retries
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1 and "sinks.http_enabled: false" in warnings[0].getMessage()
+
+        up["value"] = True
+        await sink.flush_outbox()
+        assert any("reachable again" in r.getMessage() for r in caplog.records)
+    assert store.outbox_size() == 0
+    store.close()
+
+
+def test_enabling_central_push_without_a_token_says_so_at_startup(tmp_path, monkeypatch, caplog):
+    import logging
+    monkeypatch.delenv("SYSTEMLENS_HTTP_TOKEN", raising=False)
+    store = ProjectStore(tmp_path / "state.db")
+    with caplog.at_level(logging.WARNING, logger="systemlens.sinks"):
+        HttpSink("https://central.example/x", "SYSTEMLENS_HTTP_TOKEN", store)
+    assert "SYSTEMLENS_HTTP_TOKEN is not set" in caplog.text
+    store.close()
+
+
+def _fix_bundle():
+    return _bundle([_container("web"), _container("db", running=False, exit_code=1, finished_at=NOW - 5)])
+
+
+def test_a_fix_naming_a_container_is_rewritten_to_the_service():
+    from systemlens.core.analysis import check_fix
+    bundle = _fix_bundle()
+    bundle.containers[1].name = "myproj-db-1"            # container name differs from the service
+    fixed = check_fix(_analysis("db", fix="docker compose start myproj-db-1"), bundle)
+    assert fixed.fix_suggestion == "docker compose start db"
+    assert fixed.unverified_assumptions == []
+
+
+def test_a_fix_naming_a_service_that_does_not_exist_is_flagged_not_shown_as_plain_advice():
+    from systemlens.core.analysis import check_fix
+    fixed = check_fix(_analysis("web", fix="docker compose up -d cache", verdict="insufficient_evidence"),
+                      _fix_bundle())
+    assert "[warning: 'cache' is not a service of this project]" in fixed.fix_suggestion
+    assert any("matches no service" in n for n in fixed.unverified_assumptions)
+
+
+def test_fix_check_leaves_other_suggestions_and_good_commands_alone():
+    from systemlens.core.analysis import check_fix
+    bundle = _fix_bundle()
+    for text in ("docker compose up -d db", "Add error handling around the config lookup", "rm -rf /tmp/x"):
+        analysis = _analysis("db", fix=text)
+        assert check_fix(analysis, bundle) is analysis
+    assert check_fix(_analysis("x", fix="docker compose up -d zzz"), _bundle([])).fix_suggestion == \
+        "docker compose up -d zzz", "no container list, nothing to check against"

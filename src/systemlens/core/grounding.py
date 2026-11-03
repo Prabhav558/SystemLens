@@ -65,8 +65,10 @@ def enforce_grounding(analysis: Analysis, bundle: EvidenceBundle) -> tuple[Analy
     if (component is not None and not linked(component)
             and (origin is not None or component.id in unscoped_ids)):
         verdict, confidence = "insufficient_evidence", min(confidence, 0.2)
+        blamed, component_name = component.name, (origin.name if origin else "unknown")
+        analysis = analysis.model_copy(update={"affected_component": component_name})
         notes.append(
-            f"grounding: '{component.name}' was named as the affected component but has no "
+            f"grounding: '{blamed}' was named as the affected component but has no "
             f"established link to the triggering signal (it is not the signal's origin, not a "
             f"scoped candidate, and not named in the signal)"
         )

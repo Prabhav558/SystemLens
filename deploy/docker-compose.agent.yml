@@ -18,6 +18,8 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       SYSTEMLENS_HTTP_TOKEN: ${SYSTEMLENS_HTTP_TOKEN:-}
       SYSTEMLENS_SLACK_WEBHOOK: ${SYSTEMLENS_SLACK_WEBHOOK:-}
+      SYSTEMLENS_DISCORD_WEBHOOK: ${SYSTEMLENS_DISCORD_WEBHOOK:-}
+      SYSTEMLENS_WEBHOOK_URL: ${SYSTEMLENS_WEBHOOK_URL:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - agent-data:/data

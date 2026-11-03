@@ -54,6 +54,11 @@ class CaseResult:
     def analysis_ok(self) -> bool:
         return self.analysis is not None and not self.analysis_failures and self.error is None
 
+    @property
+    def errored(self) -> bool:
+        """The model never produced an answer (rate limit, outage). Not a wrong answer."""
+        return self.error is not None and self.analysis is None
+
 
 @dataclass(slots=True)
 class Report:
@@ -62,13 +67,23 @@ class Report:
     with_llm: bool
 
     def rate(self, attr: str) -> float:
-        return sum(getattr(r, attr) for r in self.results) / len(self.results) if self.results else 0.0
+        """Pass rate over the cases that were actually scored. Cases where the
+        provider errored are excluded: counting a rate limit as a wrong answer
+        would say nothing about the model.
+        """
+        scored = [r for r in self.results if not (attr == "analysis_ok" and r.errored)]
+        return sum(getattr(r, attr) for r in scored) / len(scored) if scored else 0.0
+
+    @property
+    def errored(self) -> int:
+        return sum(r.errored for r in self.results) if self.with_llm else 0
 
     def to_dict(self) -> dict:
         return {
             "suite": self.name, "cases": len(self.results),
             "correlator_pass_rate": round(self.rate("correlator_ok"), 3),
             "analysis_pass_rate": round(self.rate("analysis_ok"), 3) if self.with_llm else None,
+            "errored": self.errored,
             "results": [{
                 "id": r.case_id, "correlator_ok": r.correlator_ok,
                 "correlator_failures": r.correlator_failures,
@@ -140,8 +155,14 @@ def load_suite(path: Path) -> tuple[str, list[dict]]:
     return data.get("name", path.parent.name), cases
 
 
-async def run_suite(path: Path, llm=None, window_seconds: int = 120) -> Report:
+async def run_suite(path: Path, llm=None, window_seconds: int = 120,
+                    only: Optional[list[str]] = None) -> Report:
     name, cases = load_suite(path)
+    if only:
+        unknown = set(only) - {c["id"] for c in cases}
+        if unknown:
+            raise ValueError(f"no such case(s): {', '.join(sorted(unknown))}")
+        cases = [c for c in cases if c["id"] in only]
     results = []
     for case in cases:
         expect = case.get("expect") or {}

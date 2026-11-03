@@ -16,7 +16,7 @@ import re
 import shlex
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional
 
@@ -76,6 +76,21 @@ def propose(fix_text: str) -> Proposal:
     return Proposal(fix_text, command, "review",
                     "not on the allowlist (only docker compose up -d/restart/start and "
                     "docker restart/start can be run for you); review and run it yourself")
+
+
+def localize(proposal: Proposal, container_services: dict[str, str]) -> Proposal:
+    """`docker compose start error_project_db` is a common slip: compose takes
+    the service name (`db`), not the container name. Rewrite container names
+    that belong to this project to their service, so the command shown is the
+    one that works. Names that match nothing are left for `execute` to refuse.
+    """
+    if proposal.kind != "compose" or not proposal.targets or not proposal.argv:
+        return proposal
+    mapped = tuple(container_services.get(t, t) for t in proposal.targets)
+    if mapped == proposal.targets:
+        return proposal
+    argv = proposal.argv[: -len(proposal.targets)] + list(mapped)
+    return replace(proposal, argv=argv, targets=mapped, command=" ".join(argv))
 
 
 def compose_services(compose_file: Optional[Path]) -> set[str]:

@@ -312,3 +312,164 @@ async def test_shipped_example_suite_passes_the_correlator_check():
     report = await run_suite(suite, None)
     assert len(report.results) == 11
     assert [r.case_id for r in report.results if not r.correlator_ok] == []
+
+
+@pytest.mark.asyncio
+async def test_patient_mode_waits_out_a_per_minute_rate_limit():
+    waits = []
+
+    async def sleep(seconds):
+        waits.append(seconds)
+
+    # a minute-window limit: three refusals in a row (no Retry-After header)
+    from systemlens.llm.base import ProviderRateLimited
+    live = ResilientProvider(_Flaky([_HttpError(429)] * 3), max_retries=2, sleep=sleep)
+    with pytest.raises(ProviderRateLimited):                # the live pipeline hands back "try later"
+        await live.analyze(_bundle())
+
+    waits.clear()
+    patient = ResilientProvider(_Flaky([_HttpError(429)] * 3), sleep=sleep).patient()
+    assert (await patient.analyze(_bundle())).affected_component == "db"
+    assert waits and min(waits) >= 15, "a minute-window limit needs a real wait, not 2 seconds"
+
+
+@pytest.mark.asyncio
+async def test_provider_errors_are_not_counted_as_wrong_answers(tmp_path):
+    class _Down:
+        name, model = "down", "d"
+
+        async def analyze(self, bundle):
+            raise _HttpError(429)
+
+    pipeline, store, _ = _pipeline(tmp_path, bundle_dir=tmp_path / "recorded")
+    for raw in ("ERROR web: request timed out", "ERROR web: disk quota exceeded"):
+        await pipeline.process(LogRecord(project="demo", source="container:web", raw=raw,
+                                         ts=time.time(), severity=Severity.ERROR, container="web"))
+    store.close()
+    suite = init_suite(tmp_path / "recorded", tmp_path / "suite", "demo")
+    suite.write_text(suite.read_text().replace("      component: []", "      component: [web]"))
+
+    class _FirstThenDown:
+        name, model = "mixed", "m"
+        calls = 0
+
+        async def analyze(self, bundle):
+            _FirstThenDown.calls += 1
+            if _FirstThenDown.calls == 1:
+                return Analysis(**{**GOOD, "affected_component": "web"})
+            raise _HttpError(429)
+
+    report = await run_suite(suite, _FirstThenDown())
+
+    assert report.errored == 1
+    assert report.rate("analysis_ok") == 1.0, "judged only on the case that was actually answered"
+    assert report.to_dict()["errored"] == 1
+
+
+# -- a rate limit defers the analysis instead of losing it ---------------------------------
+
+@pytest.mark.asyncio
+async def test_a_long_provider_wait_is_reported_not_slept_through():
+    from systemlens.llm.base import ProviderRateLimited
+    waits = []
+
+    async def sleep(seconds):
+        waits.append(seconds)
+
+    inner = _Flaky([_HttpError(429, retry_after="27")] * 5)
+    provider = ResilientProvider(inner, sleep=sleep)          # live limits: 20s total
+
+    with pytest.raises(ProviderRateLimited) as caught:
+        await provider.analyze(_bundle())
+    assert caught.value.retry_after == 27 and waits == [], "waited nothing: 27s exceeds the live limit"
+
+    calls = inner.calls
+    with pytest.raises(ProviderRateLimited):
+        await provider.analyze(_bundle())
+    assert inner.calls == calls, "the provider is not asked again until its wait is over"
+
+
+class _LimitedThenFine:
+    name, model = "limited", "m"
+
+    def __init__(self):
+        self.calls, self.limited = 0, True
+
+    async def analyze(self, bundle):
+        from systemlens.llm.base import ProviderRateLimited
+        self.calls += 1
+        if self.limited:
+            raise ProviderRateLimited(0.0)       # due immediately, for the test
+        return Analysis(**{**GOOD, "affected_component": bundle.signal.record.container or "x"})
+
+
+@pytest.mark.asyncio
+async def test_rate_limited_analysis_is_retried_later_without_burning_the_cooldown(tmp_path):
+    config = AgentConfig(home=tmp_path)
+    store = ProjectStore(tmp_path / "state.db")
+    provider, sink = _LimitedThenFine(), _Sink()
+    pipeline = ProjectPipeline("demo", config, store, SlidingWindow(), None,
+                               RateLimiter(config.ratelimit, store), provider, sink, _Containers())
+    record = LogRecord(project="demo", source="container:web", raw="ERROR web: upstream timed out",
+                       ts=time.time(), severity=Severity.ERROR, container="web")
+    fingerprint = to_signal(record).fingerprint
+
+    assert await pipeline.process(record) is None
+    assert pipeline.deferred_count == 1
+    assert store.attempts_last_hour() == 0, "a refused request spent nothing"
+    assert store.should_analyze(fingerprint, 1800), "and must not start the 30 minute cooldown"
+
+    assert await pipeline.process(record) is None, "another occurrence while waiting is just counted"
+    assert provider.calls == 1
+
+    provider.limited = False
+    await pipeline.retry_deferred()
+
+    assert pipeline.deferred_count == 0 and len(sink.findings) == 1
+    assert sink.findings[0].analysis.affected_component == "web"
+    pipeline.flush_counts()
+    assert store.get_prior(fingerprint).occurrences == 2, "the retry is not counted as a new occurrence"
+    store.close()
+
+
+@pytest.mark.asyncio
+async def test_a_deferred_one_off_event_is_not_lost(tmp_path):
+    """An OOM kill is reported once. It must survive a rate limit."""
+    from systemlens.containers.events import ContainerEvent, event_to_record
+    config = AgentConfig(home=tmp_path)
+    store = ProjectStore(tmp_path / "state.db")
+    provider, sink = _LimitedThenFine(), _Sink()
+    pipeline = ProjectPipeline("demo", config, store, SlidingWindow(), None,
+                               RateLimiter(config.ratelimit, store), provider, sink, _Containers())
+    record = event_to_record("demo", ContainerEvent("oom", "id1", "worker", 137, time.time()))
+
+    assert await pipeline.process(record) is None
+    provider.limited = False
+    await pipeline.retry_deferred()
+
+    assert len(sink.findings) == 1, "the retried event must not be dropped as a duplicate of itself"
+    store.close()
+
+
+def test_a_long_traceback_keeps_its_final_exception_line():
+    """Seen in the first real-model eval: the traceback was cut to 400 chars, so
+    `KeyError: 'missing_key'` never reached the model, which then blamed an
+    unrelated container that had also failed.
+    """
+    frames = [f'  File "/usr/lib/flask/app.py", line {n}, in frame_{n}\n    call_{n}()' for n in range(40)]
+    raw = ("2026-10-07 11:04:36,786 ERROR web: Exception on /crash [GET]\n"
+           "Traceback (most recent call last):\n" + "\n".join(frames) + "\nKeyError: 'missing_key'")
+    bundle = _bundle(raw=raw)
+    bundle.signal.record.raw = raw
+    rendered = render_evidence(bundle)
+
+    assert "KeyError: 'missing_key'" in rendered
+    assert "Exception on /crash [GET]" in rendered, "where it happened is kept too"
+    assert "lines omitted" in rendered
+    signal_block = rendered.split("=== TRIGGERING SIGNAL ===")[1].split("=== DETERMINISTIC")[0]
+    assert len(signal_block) < 1800
+
+
+def test_short_records_are_untouched():
+    from systemlens.llm.prompt import _clip_record
+    assert _clip_record("ERROR boom\nTraceback\nKeyError: k", 1500) == "ERROR boom\nTraceback\nKeyError: k"

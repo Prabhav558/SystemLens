@@ -539,28 +539,35 @@ def fix(
         if row is None or not row["fix_suggestion"]:
             console.print("[red]No fix has been suggested for that fingerprint yet.[/red]")
             raise typer.Exit(1)
-        proposal = remediation.propose(row["fix_suggestion"])
+        async def _project_containers() -> dict[str, str]:
+            """container name -> compose service, for this project (empty if Docker is down)."""
+            reg = ContainerRegistry(AsyncDockerClient(base_url=config.docker_socket), [entry])
+            await reg.refresh()
+            states, _ = await reg.containers_for(entry.name)
+            return {c.name: c.compose_service or c.name for c in states}
+
+        try:
+            container_services = asyncio.run(_project_containers())
+        except Exception:  # noqa: BLE001 - proposing a fix works without Docker
+            container_services = {}
+        proposal = remediation.localize(remediation.propose(row["fix_suggestion"]), container_services)
         colour = {"safe": "green", "review": "yellow", "manual": "dim"}[proposal.risk]
         console.print(f"[bold]suggested fix:[/bold] {proposal.text}")
         if proposal.command:
             console.print(f"[bold]command:[/bold] {proposal.command}", markup=False)
+            if proposal.command != remediation.extract_command(proposal.text):
+                console.print("[dim](container name translated to its compose service)[/dim]")
         console.print(f"[bold]risk:[/bold] [{colour}]{proposal.risk}[/{colour}] — {proposal.reason}")
         minutes = config.remediation.verify_minutes
 
         if run:
-            async def _containers() -> set[str]:
-                reg = ContainerRegistry(AsyncDockerClient(base_url=config.docker_socket), [entry])
-                await reg.refresh()
-                states, _ = await reg.containers_for(entry.name)
-                return {c.name for c in states}
-
             if proposal.risk == "safe" and config.remediation.allow_execute and not yes:
                 if not typer.confirm(f"Run `{proposal.command}` in {entry.root}?"):
                     raise typer.Exit(0)
             try:
                 done = remediation.execute(
                     proposal, allow_execute=config.remediation.allow_execute, project_root=entry.root,
-                    compose_file=entry.compose_file, project_containers=asyncio.run(_containers()))
+                    compose_file=entry.compose_file, project_containers=set(container_services))
             except remediation.ExecutionRefused as e:
                 console.print(f"[red]Not run:[/red] {e}")
                 raise typer.Exit(1)
@@ -735,14 +742,19 @@ def eval_run(
     suite: Path = typer.Argument(..., help="Path to a suite.yaml"),
     no_llm: bool = typer.Option(False, "--no-llm", help="Score only the deterministic correlator"),
     min_pass_rate: float = typer.Option(0.0, help="Exit non-zero below this pass rate (0-1)"),
+    case: Optional[list[str]] = typer.Option(None, "--case", help="Run only this case id (repeatable)"),
     as_json: bool = _JSON,
 ):
     """Replay a suite and report how many cases the correlator and the analysis get right."""
     from systemlens.evaluation import run_suite
     config = AgentConfig.load()
+    llm = None
+    if not no_llm:
+        llm = _llm_or_exit(config)
+        if hasattr(llm, "patient"):
+            llm.patient()       # batch run: wait out per-minute rate limits
     try:
-        report = asyncio.run(run_suite(suite, None if no_llm else _llm_or_exit(config),
-                                       config.correlation.window_seconds))
+        report = asyncio.run(run_suite(suite, llm, config.correlation.window_seconds, only=case))
     except (OSError, ValueError) as e:
         _fail(e)
     if as_json:
@@ -755,13 +767,18 @@ def eval_run(
         for r in report.results:
             answer = f"{r.analysis.affected_component} / {r.analysis.verdict}" if r.analysis else ""
             problems = "; ".join(r.correlator_failures + r.analysis_failures + ([r.error] if r.error else []))
-            table.add_row(r.case_id, mark(r.correlator_ok),
-                          mark(r.analysis_ok) if report.with_llm else "[dim]skipped[/dim]", answer, problems)
+            analysis_cell = ("[dim]skipped[/dim]" if not report.with_llm
+                             else "[yellow]no answer[/yellow]" if r.errored else mark(r.analysis_ok))
+            table.add_row(r.case_id, mark(r.correlator_ok), analysis_cell, answer, problems[:120])
         console.print(table)
+        scored = len(report.results) - report.errored
         console.print(f"correlator: {report.rate('correlator_ok'):.0%} of {len(report.results)} cases"
-                      + (f"   analysis: {report.rate('analysis_ok'):.0%}" if report.with_llm else ""))
+                      + (f"   analysis: {report.rate('analysis_ok'):.0%} of {scored} scored" if report.with_llm else ""))
+        if report.errored:
+            console.print(f"[yellow]{report.errored} case(s) got no answer from the provider and were not "
+                          f"scored. Run again, or use a provider with a higher rate limit.[/yellow]")
     rate = report.rate("analysis_ok") if report.with_llm else report.rate("correlator_ok")
-    if rate < min_pass_rate:
+    if rate < min_pass_rate or report.errored:
         raise typer.Exit(1)
 
 

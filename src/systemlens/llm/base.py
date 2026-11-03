@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import unicodedata
 from typing import Optional, Protocol, Type, TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -30,6 +32,16 @@ class LLMProvider(Protocol):
 
 class ModelOutputError(RuntimeError):
     """The model answered, but not with usable structured output."""
+
+
+class ProviderRateLimited(RuntimeError):
+    """The provider asked us to wait longer than a live analysis may block.
+    Not a failure of the request: it is worth trying again after `retry_after`.
+    """
+    def __init__(self, retry_after: float, detail: str = ""):
+        super().__init__(f"rate limited by the provider; try again in {retry_after:.0f}s"
+                         + (f" ({detail})" if detail else ""))
+        self.retry_after = retry_after
 
 
 class ProviderUnavailable(RuntimeError):
@@ -108,15 +120,34 @@ def strict_json_schema(model: Type[BaseModel]) -> dict:
     return schema
 
 
+_TYPOGRAPHY = str.maketrans({
+    **{c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"},      # hyphens and dashes
+    **{c: "'" for c in "\u2018\u2019\u201a\u201b\u2032"},
+    **{c: '"' for c in "\u201c\u201d\u201e\u201f\u2033"},
+    "\u2026": "...",
+})
+
+
+def _normalize(text: str) -> str:
+    """Typographic variants and whitespace only. Models often re-emit a quoted
+    log line with a non-breaking hyphen or curly quote; that is the same text.
+    This cannot make an invented line match, only an identical one.
+    """
+    text = unicodedata.normalize("NFKC", text).translate(_TYPOGRAPHY)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def sanitize_evidence(analysis: Analysis, corpus: str) -> tuple[Analysis, list[str]]:
     """Post-validation: drop any `evidence` entry the model fabricated (not a
     substring of the actual evidence corpus it was given). This is the
     concrete enforcement of "never invent a log line" — we don't trust the
     prompt alone. Downgrades verdict if all evidence was dropped.
     """
+    haystack = _normalize(corpus)
     kept, dropped = [], []
     for e in analysis.evidence:
-        (kept if e.strip() and e.strip() in corpus else dropped).append(e)
+        needle = _normalize(e)
+        (kept if needle and needle in haystack else dropped).append(e)
 
     verdict = analysis.verdict
     if not kept and analysis.verdict == "root_cause_identified":

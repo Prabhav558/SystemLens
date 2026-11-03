@@ -356,3 +356,12 @@ async def test_inconclusive_answer_is_escalated_to_the_investigator_when_enabled
                                                     raw="ERROR could not resolve upstream", severity=Severity.ERROR))
         assert (finding.provider, investigator.calls) == (expected_provider, expected_calls)
         store.close()
+
+
+def test_a_downgraded_answer_no_longer_points_at_the_container_it_blamed():
+    bundle = _flaky_health_bundle()
+    checked, notes = enforce_grounding(_analysis("db", "db exited, so health checks fail"), bundle)
+
+    assert checked.verdict == "insufficient_evidence"
+    assert checked.affected_component == "flaky_health", "shown as where it surfaced, not as the cause"
+    assert "'db' was named" in notes[0], "what the model claimed is kept in the note"

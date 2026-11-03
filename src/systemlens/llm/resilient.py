@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any, Awaitable, Callable, Optional
 
 from systemlens.core.models import Analysis, EvidenceBundle
-from systemlens.llm.base import ProviderUnavailable
+from systemlens.llm.base import ProviderRateLimited, ProviderUnavailable
 from systemlens.llm.prompt import DEFAULT_MAX_EVIDENCE_CHARS
 
 logger = logging.getLogger("systemlens.llm")
@@ -49,11 +50,23 @@ def _is_connection_error(exc: BaseException) -> bool:
 
 class ResilientProvider:
     def __init__(self, primary, fallback=None, max_retries: int = 2,
-                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep):
+                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+                 max_wait: float = MAX_WAIT_SECONDS, rate_limit_floor: float = 0.0):
         self._primary, self._fallback = primary, fallback
         self._max_retries = max_retries
         self._sleep = sleep
+        self._max_wait = max_wait
+        self._rate_limit_floor = rate_limit_floor
         self._last = primary
+        self._blocked_until: dict[int, float] = {}     # id(provider) -> monotonic time
+
+    def patient(self, max_wait: float = 240.0, max_retries: int = 10, rate_limit_floor: float = 15.0):
+        """Wait out per-minute rate limits instead of giving up. For batch work
+        (`agent eval`) where nothing is stalled by waiting; the live pipeline
+        keeps the short default so one slow provider cannot hold up log processing.
+        """
+        self._max_wait, self._max_retries, self._rate_limit_floor = max_wait, max_retries, rate_limit_floor
+        return self
 
     # whoever answered last, so findings are attributed to the right model
     @property
@@ -87,6 +100,11 @@ class ResilientProvider:
     async def _attempts(self, provider, method: str, args: tuple):
         bundle = args[0] if args and isinstance(args[0], EvidenceBundle) else None
         waited, attempt = 0.0, 0
+        # A provider that just told us to wait is not asked again until then:
+        # every call in the meantime would be refused and only use up quota.
+        remaining = self._blocked_until.get(id(provider), 0.0) - time.monotonic()
+        if remaining > 0:
+            raise ProviderRateLimited(remaining)
         while True:
             try:
                 result = await getattr(provider, method)(*args)
@@ -104,11 +122,26 @@ class ResilientProvider:
                     logger.warning("%s rejected the request as too large; retrying with %d chars "
                                    "of evidence", provider.name, bundle.max_evidence_chars)
                     continue
+                if status == 429:
+                    wait = retry_after_of(e)
+                    if wait is None:
+                        wait = 2.0 * (2 ** attempt)
+                    wait = max(wait, self._rate_limit_floor)
+                    if attempt >= self._max_retries or waited + wait > self._max_wait:
+                        # too long to block on: hand back "try again in N seconds"
+                        wait = max(wait, 5.0)
+                        self._blocked_until[id(provider)] = time.monotonic() + wait
+                        raise ProviderRateLimited(wait, str(e).splitlines()[0][:120]) from e
+                    attempt += 1
+                    waited += wait
+                    logger.info("%s returned 429; retrying in %.1fs", provider.name, wait)
+                    await self._sleep(wait)
+                    continue
                 if (status in _TRANSIENT or _is_connection_error(e)) and attempt < self._max_retries:
                     wait = retry_after_of(e)
                     if wait is None:
                         wait = 2.0 * (2 ** attempt)
-                    if waited + wait > MAX_WAIT_SECONDS:
+                    if waited + wait > self._max_wait:
                         raise
                     attempt += 1
                     waited += wait

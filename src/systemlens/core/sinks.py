@@ -70,6 +70,17 @@ class HttpSink:
         self._token = os.environ.get(token_env)
         self._store = store
         self._client = client or httpx.AsyncClient(timeout=10.0)
+        self._unreachable = False       # warn once per outage, not on every retry
+        if not self._token:
+            logger.warning("sinks.http_enabled is on but $%s is not set; findings will queue "
+                           "locally and not be delivered", token_env)
+
+    def _outage(self, reason: str) -> None:
+        if not self._unreachable:
+            self._unreachable = True
+            logger.warning("central server %s: %s. Findings are queued and retried quietly. "
+                           "(Not using the central dashboard? Set sinks.http_enabled: false.)",
+                           self._url, reason)
 
     @staticmethod
     def payload(project: str, fingerprint: str, analysis: dict, provider, model, created_at: float) -> dict:
@@ -90,15 +101,17 @@ class HttpSink:
         try:
             resp = await self._client.post(self._url, json=payload, headers=headers)
         except Exception as e:  # noqa: BLE001 - network trouble: retry later
-            logger.warning("push to central server failed (%s); queued for retry", type(e).__name__)
+            self._outage(f"unreachable ({type(e).__name__})")
             return False
         if resp.status_code in (401, 403):
-            logger.warning("central server rejected the API key (HTTP %s); queued for retry",
-                           resp.status_code)
+            self._outage(f"rejected the API key (HTTP {resp.status_code})")
             return False
         if resp.status_code >= 500 or resp.status_code == 429:
-            logger.warning("central server returned HTTP %s; queued for retry", resp.status_code)
+            self._outage(f"returned HTTP {resp.status_code}")
             return False
+        if self._unreachable:
+            self._unreachable = False
+            logger.info("central server is reachable again")
         if resp.status_code >= 400:
             # the server understood and refused this payload: retrying cannot help
             logger.warning("central server refused a finding (HTTP %s); dropped", resp.status_code)
